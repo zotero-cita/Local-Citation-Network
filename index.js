@@ -660,7 +660,7 @@ function initCitationNetwork (app, minDegreeCitedArticles = 1, minDegreeCitingAr
 
   const nodes = articles.map(article => ({
     id: article.id,
-    title: htmlTitle(app.authorStringShort(article.authors) + '. <a><em>' + article.title + '</em></a>. ' + article.journal + '. ' + article.year + '.<br>(Double click opens article: <a>' + String(app.articleLink(article)).substr(0, 28) + '...</a>)'),
+    title: htmlTitle(app.authorStringShort(article.authors) + '. <a><em>' + article.title + '</em></a>. ' + article.journal + '. ' + article.year),
     level: years.indexOf(article.year),
     group: article[app.citationNetworkNodeColor],
     value: app.rankNumber(article.id),
@@ -885,7 +885,7 @@ function initAuthorNetwork (app, minPublications = undefined) {
     const authorIdGroupIndex = authorIdGroups.map(group => group.includes(author.id)).indexOf(true)
     return {
       id: author.id,
-      title: htmlTitle(author.name + ': author of ' + seedArticlesAuthoredCount + ' seed articles' + (isSourceAuthor ? ' (including source)' : '') + '.<br>' + (author.affil ? 'Affiliation(s): ' + author.affil + '<br>' : '') + ' Color by ' + ((app.authorNetworkNodeColor === 'firstArticle') ? 'first' : 'last') + ' article: ' + articles[authorIdGroupIndex].title + ' <br>(Double click opens author: <a>' + app.authorLink(author).substr(0, 28) + '...</a>)'),
+      title: htmlTitle(author.name + ': author of ' + seedArticlesAuthoredCount + ' seed articles' + (isSourceAuthor ? ' (including source)' : '') + '.<br>' + (author.affil ? 'Affiliation(s): ' + author.affil + '<br>' : '') + ' Color by ' + ((app.authorNetworkNodeColor === 'firstArticle') ? 'first' : 'last') + ' article: ' + articles[authorIdGroupIndex].title),
       group: authorIdGroupIndex,
       label: ((app.authorNetworkFirstNames) ? (author.FN + ' ') : '') + author.LN,
       value: publicationsCount[author.id],
