@@ -69,7 +69,7 @@
       }
 
       .tab-item {
-        height: calc(100vh - 6.5rem);
+        height: calc(100vh - 4.5rem);
         overflow-x: hidden;
         overflow-y: auto;
       }
@@ -698,10 +698,6 @@
           </b-collapse>
         </div>
       </b-modal>
-      
-      <span style="position:absolute; bottom: 10px; left: 10px">
-        {{ getString('footer', ['Tim Woelfle', 'Local Citation Network']) }} <a @click="e => {e.preventDefault(); openUrl('https://LocalCitationNetwork.github.io')}" href="">&#8618</a>
-      </span>
     </section>
 
     <script>
