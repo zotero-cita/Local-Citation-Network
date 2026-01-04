@@ -237,20 +237,12 @@
                       :triggers="['click']"
                       :auto-close="['outside', 'escape']">
                       <template v-slot:content>
-                        <template v-if="author.affil">{{ author.affil }}<br></template>
-                        <a :href="'https://orcid.org/' + author.orcid" v-if="author.orcid" target="_blank">ORCID</a>
-                        <a :href="author.url" v-if="author.url" target="_blank">Homepage</a>
-                        <a :href="'https://openalex.org/' + author.id" v-if="author.id && currentGraph.API === 'OpenAlex'" target="_blank">OpenAlex</a>
-                        <a :href="'https://semanticscholar.org/author/' + author.id" v-if="author.id && currentGraph.API === 'Semantic Scholar'" target="_blank">Semantic Scholar</a>
-                        <a :href="'https://scholar.google.com/scholar?q=' + authorString([author])" target="_blank">Google Scholar</a>
+                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}">Google Scholar</a>
                       </template>
                       <a>{{ authorString([author]) }}</a>
                     </b-tooltip>
                   </template>
                 </p>
-                <p v-if="props.row.tldr"
-                  v-html="'<b><a href=&quot;https://www.semanticscholar.org/faq#tldr&quot; target=&quot;_blank&quot; title=&quot;TLDR is an AI-generated summarization provided by Semantic Scholar.&quot;>TLDR: </a></b>' + formatTags(props.row.tldr)"
-                  class="content"></p>
                 <template v-if="props.row.abstract">
                   <h4 class="title is-6">{{ getString('abstract') }}</h4>
                   <p v-html="formatTags(props.row.abstract)" class="content"></p>
@@ -318,12 +310,7 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.references.tooltip')" dashed position="is-left" type="is-dark">
-                    <a :href="referencesLink(props.row)" target="_blank" v-if="referencesLink(props.row)">
-                      {{ props.row.referencesCount || props.row.references?.length }}
-                    </a>
-                    <template v-else>
-                      {{ props.row.referencesCount || props.row.references?.length }}
-                    </template>
+                    {{ props.row.referencesCount || props.row.references?.length }}
                   </b-tooltip>
                 </template>
               </b-table-column>
@@ -431,20 +418,12 @@
                       :triggers="['click']"
                       :auto-close="['outside', 'escape']">
                       <template v-slot:content>
-                        <template v-if="author.affil">{{ author.affil }}<br></template>
-                        <a :href="'https://orcid.org/' + author.orcid" v-if="author.orcid" target="_blank">ORCID</a>
-                        <a :href="author.url" v-if="author.url" target="_blank">Homepage</a>
-                        <a :href="'https://openalex.org/' + author.id" v-if="author.id && currentGraph.API === 'OpenAlex'" target="_blank">OpenAlex</a>
-                        <a :href="'https://semanticscholar.org/author/' + author.id" v-if="author.id && currentGraph.API === 'Semantic Scholar'" target="_blank">Semantic Scholar</a>
-                        <a :href="'https://scholar.google.com/scholar?q=' + authorString([author])" target="_blank">Google Scholar</a>
+                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}">Google Scholar</a>
                       </template>
                       <a>{{ authorString([author]) }}</a>
                     </b-tooltip>
                   </template>
                 </p>
-                <p v-if="props.row.tldr"
-                  v-html="'<b><a href=&quot;https://www.semanticscholar.org/faq#tldr&quot; target=&quot;_blank&quot; title=&quot;TLDR is an AI-generated summarization provided by Semantic Scholar.&quot;>TLDR: </a></b>' + formatTags(props.row.tldr)"
-                  class="content"></p>
                 <template v-if="props.row.abstract">
                   <h4 class="title is-6">{{ getString('abstract') }}</h4>
                   <p v-html="formatTags(props.row.abstract)" class="content"></p>
@@ -598,7 +577,7 @@
               </b-field>
             </b-field>
             <p class="content">
-              {{ getString('network-settings-modal.p1.1') }} <a href="https://visjs.github.io/vis-network/docs/network/" target="_blank">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }} {{ getString('network-settings-modal.p1.3') }}
+              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }} {{ getString('network-settings-modal.p1.3') }}
               <a @click="currentGraph.customConfigCitationNetwork = undefined; resetCurrentNetwork(); initCurrentNetwork(); saveState();">
                 {{ getString('network-settings-modal.click-to-reset') }}
               </a>
@@ -631,7 +610,7 @@
               </b-field>
             </b-field>
             <p class="content">
-              {{ getString('network-settings-modal.p1.1') }} <a href="https://visjs.github.io/vis-network/docs/network/" target="_blank">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }}
+              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }}
               <a @click="currentGraph.customConfigAuthorNetwork = undefined; resetCurrentNetwork(); initCurrentNetwork(); saveState();">
                 {{ getString('network-settings-modal.click-to-reset') }}
               </a>
