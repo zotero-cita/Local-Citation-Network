@@ -1,4 +1,167 @@
-03.2021 v0.96
+15.03.2025 v1.29
+* Slightly increased standard font size from 9pt to 10pt for better readability.
+* Made CSS layout more flexible by replacing most px measures in rem.
+* Bumped vis.js Network to newest versions.
+! Fixed bookmarklet, in rare cases decodeURIComponent(x.innerHTML) caused an "URIError: malformed URI sequence" (e.g. on https://doi.org/10.1177/13524585251316242)
+
+02.02.2025 v1.28
+* Some adaptations for better integration with the awesome Zotero Cita plugin: https://github.com/diegodlh/zotero-cita.
+* Slightly changed linkToShareAppendix() logic.
+* Added downloadFile function.
+! Fixed physics of Co-authorship network by reverting to default barnesHut configuration.
+! Fix title of edges in Co-authorship network (only considers seed articles as of 1.21).
+! Fixed some old terminology in comments.
+
+11.11.2024 v1.27
++ Export options modal for CSV / RIS download.
+* De-duplication of All Cited and All Citing is off again by default but can be turned on.
+! Fixed loading citation network settings "Max. number of Cited Articles" (maxCitedArticles) and "Max. number of Citing Articles" (maxCitingArticles) from old saves.
+
+06.10.2024 v1.26
++ Renamed "Input Articles" to "Seed Articles", "References" to "Cited", and "Citations" to "Citing" in accordance with "Guidance on terminology, application, and reporting of citation searching: the TARCiS statement" (Hirt 2024, https://doi.org/10.1136/bmj-2023-078384).
++ All Cited and All Citing are now de-duplicated against Seed Articles and All Citing also against All Cited by default (there is an option to turn this off).
++ Added CSV and RIS downloads for full network (i.e., all tabs).
++ RIS files now contain notes including numbers of Citations, References, Cited, Citing.
++ Saving vis.js network custom settings now using "download full network" and by turning Autosave on ("Save" in the top right). This means networks are more customizable now.
++ Some preparations for Co*Citation Network (compare https://doi.org/10.17605/OSF.IO/NPM2E)
+- Removed Citation network option "Node size", now always default: Sum of In- & Out-Degree ("Rank").
+
+09.06.2024 v1.25
+* Remove Semantic Scholar (S2) responses without id (sometimes affected All References / All Citations).
+! Fix formatting of '<' & '>' in titles.
+
+08.06.2024 v1.24
++ Now add placeholders in Input Articles table when id was set (e.g. in custom list of IDs or via bookmarklet) but not found via API or an error occurred.
++ Now truely retrieve All References / All Citations also with Semantic Scholar (S2) by implementing API paging, not just the first 1000 per paper.
+* Optimized code to use recursive deepFreeze() instead of Object.freeze(), before actually adding article arrays/objects to Vue data tree, vastly increasing performance (especially noticable when All References & All Citations tables contain (tens of) thousands of rows).
+* Refactored code to improve readability (splitting up the createNewNetwork function in createNewNetwork, retrievedInputArticles, retrievedIncomingSuggestions, retrievedOutgoingSuggestions).
+* Added a few first end-to-end tests with cypress (more are needed for better maintainability).
+* Updated examples to also include placeholders.
+
+02.06.2024 v1.23
++ Support Semantic Scholar API Keys (may occassionally speed up API, request one here: https://www.semanticscholar.org/product/api#api-key).
+* Refactored code to make use of Object.freeze() for large arrays containing articles, increasing performance.
+* Refactored code to calculate "referenced" and "citing" objects on the fly instead of caching them in the graph object. This reduces size of localStorage ("autosave results locally") and network json files ("download full network"). It leads to slightly more computation when changing the network-tab. Also made it more efficient by only looking at articles' references lists (instead of also citations lists) and thus reduced some redundancies.
+! The above refactoring also fixed a bug that sometimes led to slightly wrong numbers of In-Degree and Out-Degree for References and Citations. This fix also applies retrospectively to saved networks after reloading.
+
+01.06.2024 v1.22
++ For Input Articles: Added "Filter References" and "Filter Citations" in article details.
++ For all articles: Added "Filter Input Articles cited by this" (corresponds to Out-Degree) and "Filter Input Articles citing this" (corresponds to In-Degree).
++ Added "Too Long Didn't Read" (TLDR) summaries for Semantic Scholar (S2) (https://www.semanticscholar.org/faq#tldr).
+* Use batch API for Semantic Scholar (S2), which allows much faster retrievals and much fewer API-overloads (error 429). (Unfortunately seems to have an issue, compare below "Known issues")
+* In case "All references" or "All citations" are retrieved (OA & S2 only): don't de-duplicate them anymore so that numbers in the respective tabs are correct, also when filtering them.
+* Let users choose number of articles per page.
+* Deactivated S2 reference contexts for now (simultaneous API call often led to API-overload (error 429)).
+* Bumped Buefy, Vue and vis.js Network to newest versions. Use "render-on-mounted" for modals, introduced in new Buefy version, and removed previously necessary hack.
+! Fixed "Show source article node" in Citation network settings.
+
+Known issues:
+- Top Citations are wrong with Semantic Scholar (S2), they are pretty random citations and not the top ones. This seems to be a bug on their side (which now affects Local Citation Network because of using the batch API endpoint) which I have reported: https://github.com/allenai/s2-folks/issues/199
+
+28.08.2023 v1.21
++ Tables are paginated now.
+* Tables now show all retrieved references / citations (either "Top x" or "All"), the "number shown" setting was moved to the citation network settings as "Maximum references" and "Maximum citations".
+* Co-authorship network now only shows authors of input articles.
+* Removed comment in RIS export and always use type "JOUR" (journal article, compare https://en.wikipedia.org/wiki/RIS_(file_format)#Type_of_reference ) for better compatibility with EndNote.
+* PMIDs don't need "pmid:" prefix anymore (supported by OpenAlex (OA) & Semantic Scholar (S2)).
+
+22.08.2023 v1.20
++ New API settings: The number of retrieved "Top references" (formerly "Incoming suggestions") and "Top citations" (formerly "Outgoing suggestions") can now be set: None / Top 10 (default) / Top 20 / Top 50 / All. The retrieval of all references / citations is fairly fast with OpenAlex (OA) & Semantic Scholar (S2) but slow with OpenCitations (OC) & Crossref (CR).
++ New Citation network settings: "Minimum degree references" and "Minimum degree citations" (default 2).
++ Data can now be downloaded in the RIS format in addtion to the CSV format
++ Tables can now be toggled to full screen. In this case the networks are deactived, increasing performance when large tables are shown.
++ Retrieve and save article type, publication date, volume, issue, firstPage, lastPage.
+* Renaming: "Incoming suggestions" become "Top references" and "Outgoing suggestions" become "Top citations" for consistency with the academic literature and other tools (e.g. CitationChaser: https://estech.shinyapps.io/citationchaser/)
++ Link to Local citations and Local references in article table details (folding out).  
++ Articles can also be filtered by article ID & DOI.
+* "Top references" don't have to be referenced by at least 2 input articles anymore and "Top citations" don't have to be cited by at least 2 input articles anymore.
+* Don't show edges between "Top references" / "Top citations" anymore so the number of incoming/outgoing edges (arrows) is equivalent to their in-degree and out-degree (also using Semantic Scholar's references/citations endpoints doesn't provide reference lists so the relations between them are unknown, only their relations to the input articles).
+* Autosave now only saves up to 100 Top references & Top citations because of space constraints. Use "download full network: JSON" to save full network.
+* Show loading-progress for "Top references" / "Top citations"
+* Download JSON, CSV, RIS as blob, allowing much larger file sizes.
+! Fix escaping of quotes in CSV exports.
+
+17.08.2023 v1.16
++ Articles can also be filtered by author affiliation now (OpenAlex seems to provide most complete affiliations).
+
+14.05.2023 v1.15
++ Retrieve "Outgoing suggestions" also with OpenAlex (OA) now. Results in 1 extra API call per input article (disable by running "vm.getCitationsOA = false" in browser console).
++ Added "↻" / "↺" link to rotate the citation network by 90° and stopped automatic rotation when fullscreen is toggled as it did not always fit shape of network.
++ Added option to color-group author nodes in co-authorship network by either their first or last article. Show which article they're color-grouped by in author-node-tooltip.
+* Network settings are now saved with each network (i.e. tab) separately and stored locally when "Autosave results locally" is on or a JSON of a network is downloaded (Citation network settings: "Node color", "Node size", "Show source article node", "↻" / "↺"; Co-authorship network settings: "Node color", "Show first names", "only authors with a minimum [2-10] input & suggested articles are shown"); consistent with "Number shown" for "Incoming suggestions" and "Outgoing suggestions" since v1.1.
+* Adapted stabilization time for citation network according to its size: might take longer for larger networks but their layout ends up nicer now. Also added turning wheels to indicate the process of initializing networks.
+* Stopped always initializing both citation and co-authorship networks at the same time, now only done the first time their tab is opened. Also stopped re-stabilizing after resizing.
+* Reduced Crossref API load by leveraging select parameter (https://gitlab.com/crossref/issues/-/issues/511).
+! Fixed overwriting of author ids through co-authorship network (this led to non-working author links to their OpenAlex / Semantic Scholar pages).
+
+10.05.2023 v1.12
+* Bumped Buefy and vis.js Network to newest versions.
+! Fixed bug: Changing "Number shown" for "Incoming suggestions" and "Outgoing suggestions" didn't update networks anymore since 1.1.
+
+09.05.2023 v1.11
+! Fixed data retrieval through OpenAlex (OA) (work.host_venue became deprecated).
+! Fixed automatic 90° turning of Citation network when "fullscreen network" is toggled.
+! Fixed experimental "Incoming suggestions" for OpenAlex (OA) (see v1.1).
+
+26.04.2023 v1.1
++ It's now possible to download a network as a JSON file and reload it through the "File" button.
++ Added white background to networks' canvas so they can now properly be saved by right-click → "Open/Save Image".
++ Added option to also show first names in node labels for Co-authorship network.
++ Added "Outgoing suggestions" to OpenAlex experimentally (activate by running "vm.getCitationsOA = true" in browser console).
+* "Number shown" for "Incoming suggestions" and "Outgoing suggestions" is now saved with each network (i.e. tab) separately and stored locally when "Autosave results locally" is on or a JSON of network is downloaded.
+* Authors are now again distinguished by their names in the Co-authorship network and not by their hidden internal OpenAlex (OA) / Semantic Scholar (S2) ID due to seemingly many duplicates.
+! Fixed first/last name detection when name was formatted "last name, first name".
+
+10.12.2022 v1.0
++ CSV export of input articles / incoming suggestions / outgoing suggestions is now possible.
++ Network configurator provided by vis.js can now be accessed in modal "network settings" pane (https://visjs.github.io/vis-network/docs/network/).
++ Added support for PubMed IDs (PMID) in bookmarklet, which can thus now be used on PubMed (https://pubmed.ncbi.nlm.nih.gov/).
++ Bookmarklet now also correctly sets source article (diamond in both citation and co-authorship networks).
++ Nodes in citation network can now optionally be colored by journal.
++ Node size in citation network can now optionally reflect in-degree/out-degree only (default: sum of both).
++ Source article node can now optionally be hidden in citation network.
++ Using Semantic Scholar (S2) now provides reference contexts in article details in input articles table (experimental!).
++ Show more author information when available: affiliation, links to ORCID, homepage, Google Scholar.
+* Both citation network and co-authorship now show multiple node labels depending on scale. When no article is selected, all labels are shown now. Citation network scales up selected node for highlighting.
+* Now show progress bars when loading new sources.
+* Wait 2 minutes when network errors occur (or 429 errors caused by too rapid requests).
+* Doubleclick now opens author information in co-authorship network.
+* Crossref (CR) and the reactivated OpenCitations (OC) now send one request per paper, resulting in more stability.
+* Loading of incoming / outgoing suggestions is now indicated by loading wheels.
+* Load examples from .json and not .js file, allow the manual caching of networks as .json.
+* Routing GitHub pages to root folder now and removed the unintuitive "docs" folder which formerly contained the live version.
+* Bumped Vue, Buefy and vis.js Network to newest versions.
+! Fixed bug when using S2: journals were not loaded correctly.
+! Fixed suggestions when API is changed before they finish loading.
+
+24.06.2022 v0.991
+! Remove duplicate input articles not only for S2 but also other source APIs
+! Fix bug in "Filter articles" function: some articles are lacking a title
+
+15.05.2022 v0.99
+* When individual API calls fail in OpenAlex / Semantic Scholar, it now returns all the remaining articles instead of failing completely
+* Error messages are now messages (Buefy "toasts") instead of blocking alerts
+* Always allow editing list of DOIs before importing
+! Ordering of articles from a list of DOIs now works correctly even when these DOIs are lowercase or have trailing strings like "doi:" or "https://doi.org/" (e.g. coming from Zotero Cita)
+! Always reload source in clickOpenReferences to avoid source not having citations property anymore and causing errors with Semantic Scholar
+
+10.03.2022 v0.98
++ Added support for OpenAlex (OA), the successor of Microsoft Academic, which brings back its high coverage, speed and abstract support. Also allows search by different id types (including PMID)
++ Open Alex supports highlighting retracted papers, e.g. when opening source doi:10.3390/en14227745 (flags can be missing though)
++ Added support for Semantic Scholar (S2), which is a bit slower than OA but allows easy implentation of "Outgoing suggestions". Also allows search by even more id types (including PMID, ARXIV)
+* Deactivated OpenCitations (OC) option by default due to instability of its metadata API, it can still be activated through FAQ "Which APIs are supported?"
+* Updated examples and FAQ to showcase new APIs
+* Show API in tag labels
+* Rotate citation network 90° clockwise when fullscreen toggled so widescreen space is used more efficiently
+* Bumped Vue, Buefy and vis.js Network to newest versions
+! Cannot highlight edges by clicking anymore
+! Avoid duplicate counting of references for in-degree (e.g. https://api.crossref.org/works/10.7717/PEERJ.3544 has 5 references to DOI 10.1080/00031305.2016.1154108)
+! Avoid showing Vue template before site is mounted with v-cloak
+
+02.01.2022 v0.97
+- Removed Microsoft Academic option, which was discontinued in 2022
+
+20.03.2021 v0.96
 + Added support for OpenCitations API (#2 no-identd)
 + Suggest "Outgoing suggestions" for queries performed with OpenCitations API (down-pointing triangle in citation network)
 + Allow users to select the number of "Incoming suggestions" and "Outgoing suggestions" shown (max. 20 each)
