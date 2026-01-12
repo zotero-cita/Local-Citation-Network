@@ -10,7 +10,7 @@
 
 'use strict'
 
-const localCitationNetworkVersion = 1.29
+const localCitationNetworkVersion = 1.30
 
 const arrSum = arr => arr.reduce((a, b) => a + b, 0)
 const arrAvg = arr => arrSum(arr) / arr.length
@@ -196,7 +196,7 @@ function semanticScholarResponseToArticleArray (data) {
       numberInSourceReferences: data.indexOf(article) + 1,
       doi,
       type: article.publicationTypes,
-      title: article.title || '',
+      title: (article.title || '').replace(/\s+|<br>/g, ' ').trim(),
       authors: (article.authors || []).map(author => {
         const cutPoint = (author.name.lastIndexOf(',') !== -1) ? author.name.lastIndexOf(',') : author.name.lastIndexOf(' ')
         return {
@@ -320,7 +320,7 @@ function openAlexResponseToArticleArray (data) {
       numberInSourceReferences: data.indexOf(article) + 1,
       doi,
       type: article.type,
-      title: article.title || '',
+      title: (article.title || '').replace(/\s+|<br>/g, ' ').trim(),
       authors: (article.authorships || []).map(authorship => {
         const display_name = authorship.author.display_name || ''
         const cutPoint = (display_name.lastIndexOf(',') !== -1) ? display_name.lastIndexOf(',') : display_name.lastIndexOf(' ')
@@ -385,7 +385,7 @@ function coCitationNetworkResponseToArticleArray (data) {
       numberInSourceReferences: Object.keys(data).indexOf(articleId) + 1,
       doi,
       type: article.type,
-      title: article.title || '',
+      title: (article.title || '').replace(/\s+|<br>/g, ' ').trim(),
       authors: Object.keys((article.authors || {})).map(authorId => {
         const author = article.authors[authorId]
         const display_name = author.display_name || ''
@@ -474,7 +474,7 @@ function crossrefResponseToArticleArray (data) {
       numberInSourceReferences: data.indexOf(article) + 1,
       doi,
       type: article.type,
-      title: String(article.title), // most of the time title is an array with length=1, but I've also seen pure strings
+      title: String(article.title).replace(/\s+|<br>/g, ' ').trim(), // most of the time title is an array with length=1, but I've also seen pure strings
       authors: (article.author?.length)
         ? article.author.map(x => ({
           orcid: x.ORCID,
@@ -496,7 +496,7 @@ function crossrefResponseToArticleArray (data) {
 }
 
 /* OpenCitations API */
-// https://opencitations.net/index/api/v1#/metadata/{dois}
+// https://opencitations.net/index/api/v1#/metadata/{dois} // seems discontinued - even example does not work?!
 
 async function openCitationsWrapper (ids, responseFunction, phase) {
   const responses = []
@@ -539,7 +539,7 @@ function openCitationsResponseToArticleArray (data) {
       id: doi,
       numberInSourceReferences: data.indexOf(article) + 1,
       doi,
-      title: String(article.title), // most of the time title is an array with length=1, but I've also seen pure strings
+      title: String(article.title).replace(/\s+|<br>/g, ' ').trim(), // most of the time title is an array with length=1, but I've also seen pure strings
       authors: article.author?.split('; ').map(x => ({ LN: x.split(', ')[0], FN: x.split(', ')[1] })) ?? [],
       year: Number(article.year?.substr(0, 4)) || undefined,
       date: article.year, // is apparerently sometimes date not only year
@@ -1037,6 +1037,7 @@ const vm = new Vue({
     // UI
     fullscreenTable: false,
     fullscreenNetwork: false,
+    showColumns: ['numberInSourceReferences', 'title', 'author', 'year', 'totalCitedCount', 'totalCitingCount', 'citedCount', 'citingCount', 'coCitedCount', 'coCitingCount', 'rank'],
     filterColumn: 'titleAbstract',
     filterString: undefined,
     selectedSeedArticle: undefined,
@@ -1419,7 +1420,7 @@ const vm = new Vue({
       if (
         (this.showArticlesTab !== 'seedArticlesTab' && ['citedById', 'citingId'].includes(this.filterColumn)) ||
         (this.showArticlesTab !== 'citedArticlesTab' && this.filterColumn === 'citedBySeedArticleId') ||
-        (this.showArticlesTab !== 'citingArticlesTab' && this.filterColumn === 'citesSeedArticleId')
+        (this.showArticlesTab !== 'citingArticlesTab' && this.filterColumn === 'citingSeedArticleId')
       ) {
         this.filterColumn = 'titleAbstract'
         this.filterString = ''
@@ -1477,6 +1478,7 @@ const vm = new Vue({
     setNewSourceResponse: function (data, API, customListOfReferences) {
       const source = this.responseToArray(data, API)[0]
       source.isSource = true
+      source.numberInSourceReferences = 0
 
       if (source && customListOfReferences) {
         source.references = customListOfReferences
@@ -1810,25 +1812,28 @@ const vm = new Vue({
       return this.citedCount(id) + this.citingCount(id) + this.coCitedCount(id) + this.coCitingCount(id)
     },
     // Wrapper for Buefy tables with third argument "ascending"
+    sortAuthorsWrapper: function (a, b, ascending) {
+      return this.sortWrapper(a, b, ascending, x => x.authors[0]?.LN, x => x.title)
+    },
     sortReferencesWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => x.referencesCount ?? x.references?.length, x => this.citedCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => x.referencesCount ?? x.references?.length, x => x.title)
     },
     sortCitedWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => this.citedCount(x.id), x => this.citingCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => this.citedCount(x.id), x => x.title)
     },
     sortCitingWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => this.citingCount(x.id), x => this.citedCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => this.citingCount(x.id), x => x.title)
     },
     sortCoCitedWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => x.coCited?.length, x => this.citedCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => x.coCited?.length, x => x.title)
     },
     sortCoCitingWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => x.coCiting?.length, x => this.citingCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => x.coCiting?.length, x => x.title)
     },
     sortRankWrapper: function (a, b, ascending) {
-      return this.sortWrapper(a, b, ascending, x => this.citedCount(x.id) + this.citingCount(x.id) + (x.coCited?.length) + (x.coCiting?.length), x => this.citedCount(x.id), x => x.year)
+      return this.sortWrapper(a, b, ascending, x => this.citedCount(x.id) + this.citingCount(x.id) + (x.coCited?.length) + (x.coCiting?.length), x => x.title)
     },
-    sortWrapper: function (a, b, ascending, firstSortColumn, secondSortColumn, thirdSortColumn) {
+    sortWrapper: function (a, b, ascending, firstSortColumn, secondSortColumn) {
       // compareFunction for array.sort(), in this case descending by default (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/sort)
       function compare (articleA, articleB) {
         // Sort by firstSortColumn
@@ -1839,12 +1844,7 @@ const vm = new Vue({
           a = secondSortColumn(articleA)
           b = secondSortColumn(articleB)
         }
-        // In case of another tie sort by thirdSortColumn
-        if (a === b && thirdSortColumn) {
-          a = thirdSortColumn(articleA)
-          b = thirdSortColumn(articleB)
-        }
-        return (a ?? 0) - (b ?? 0)
+        return (a ?? ((typeof(b) === 'string') ? '0' : -1)) > (b ?? ((typeof(a) === 'string') ? '0' : -1))
       }
       return (ascending) ? compare(a, b) : compare(b, a)
     },
@@ -1967,8 +1967,8 @@ const vm = new Vue({
           return articles.filter(article => ids?.includes(article.id))
         case 'citedBySeedArticleId':
           return this.citedBySeedArticleId(articles, this.filterString)
-        case 'citesSeedArticleId':
-          return this.citesSeedArticleId(articles, this.filterString)
+        case 'citingSeedArticleId':
+          return this.citingSeedArticleId(articles, this.filterString)
         default:
           return articles
       }
@@ -1977,7 +1977,7 @@ const vm = new Vue({
       const ids = this.seedArticles[this.seedArticlesIds.indexOf(seedArticleId)]?.references
       return articles.filter(article => ids?.includes(article.id))
     },
-    citesSeedArticleId: function (articles, seedArticleId) {
+    citingSeedArticleId: function (articles, seedArticleId) {
       return articles.filter(article => article.references?.includes(seedArticleId))
     },
     authorString: function (authors) {
