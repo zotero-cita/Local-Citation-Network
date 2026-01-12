@@ -104,8 +104,12 @@
 
       /* Table */
 
-      .table th {
+      .table.is-narrow th {
         vertical-align: bottom;
+      }
+
+      .table.is-narrow td {
+        vertical-align: middle;
       }
 
       /* Icon replacements */
@@ -191,40 +195,52 @@
                 :icon-right="filterString ? 'close' : undefined"
                 icon-right-clickable
                 @icon-right-click="filterString=''"></b-input>
-              <span class="button is-static" style="border-radius: 0">{{ seedArticlesFiltered.length + " / " + seedArticles.length }}</span>
-              <b-select v-model="articlesPerPage">
-                <option value="10">10 {{ getString('filter.per-page') }}</option>
-                <option value="20">20 {{ getString('filter.per-page') }}</option>
-                <option value="50">50 {{ getString('filter.per-page') }}</option>
-                <option value="100">100 {{ getString('filter.per-page') }}</option>
-              </b-select>
+              <span class="button is-static" style="border-radius: 0 4px 4px 0">{{ seedArticlesFiltered.length + " / " + seedArticles.length }}</span>
             </b-field>
             <b-table ref="seedArticlesTabTable" :data="seedArticlesFiltered" :selected.sync="selectedSeedArticle" :current-page.sync="seedArticlesTabTablePage"
-              default-sort="citedCount" default-sort-direction="desc"
+              :default-sort="['numberInSourceReferences', 'asc']"
               @keyup.native.arrow-left="toggleArticle"
               @keyup.native.arrow-right="toggleArticle"
               @keydown.native.arrow-up.capture="tableArrowUpChangePage"
               @keydown.native.arrow-down.capture="tableArrowDownChangePage"
               detailed :has-detailed-visible="row => (row.authors.length || citedCount(row.id) || citingCount(row.id) || row.abstract || row.tldr)"
               hoverable striped narrowed focusable
-              :paginated="seedArticlesFiltered.length > articlesPerPage" :per-page="articlesPerPage" pagination-position="both">
+              paginated :per-page="articlesPerPage" pagination-position="both">
+              <template slot="top-left">
+                <b-field grouped>
+                  <b-field>
+                    <b-dropdown multiple v-model="showColumns">
+                      <template #trigger>
+                        <b-button class="select" style="width: 146.65px; padding-left: calc(.75em - 1px); padding-right: 2.5em; text-align: left; border-radius: 4px 0 0 4px; border-right: 0px">
+                          {{ getString('filter.show-columns') }}
+                        </b-button>
+                      </template>
+                      <b-dropdown-item value="numberInSourceReferences" v-if="showNumberInSourceReferences"># Number</b-dropdown-item>
+                      <b-dropdown-item value="title">{{ getString('table.column.title.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="author">{{ getString('table.column.author.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="year">{{ getString('table.column.year.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="journal">{{ getString('table.column.journal.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="totalCitingCount">{{ getString('table.column.references.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="citedCount">{{ getString('table.column.in-degree.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="citingCount">{{ getString('table.column.out-degree.label') }}</b-dropdown-item>
+                    </b-dropdown>
+                  
+                    <b-select v-model="articlesPerPage">
+                      <option value="10">10 {{ getString('filter.per-page') }}</option>
+                      <option value="20">20 {{ getString('filter.per-page') }}</option>
+                      <option value="50">50 {{ getString('filter.per-page') }}</option>
+                      <option value="100">100 {{ getString('filter.per-page') }}</option>
+                      <option value="200">200 {{ getString('filter.per-page') }}</option>
+                      <option value="500">500 {{ getString('filter.per-page') }}</option>
+                    </b-select>
+                  </b-field>
+                </b-field>
+              </template>
               <template slot="detail" slot-scope="props">
-                <p class="content">
+                <p class="content" v-if="citedArticles.length && ((currentGraph.allCited) ? (props.row.referencesCount || props.row.references?.length) : citedBySeedArticleId(citedArticles, props.row.id).length)">
                   <b-button v-if="citedArticles.length && ((currentGraph.allCited) ? (props.row.referencesCount || props.row.references?.length) : citedBySeedArticleId(citedArticles, props.row.id).length)" 
                     @click="showArticlesTab='citedArticlesTab'; filterColumn='citedBySeedArticleId'; filterString=props.row.id">
                     {{ getString('table.detail.filter-cited') }} ({{ citedBySeedArticleId(citedArticles, props.row.id).length }})
-                  </b-button>
-                  <b-button v-if="citingArticles.length && ((currentGraph.allCiting) ? props.row.citationsCount : citesSeedArticleId(citingArticles, props.row.id).length)"
-                    @click="showArticlesTab='citingArticlesTab'; filterColumn='citesSeedArticleId'; filterString=props.row.id">
-                    Filter Citing ({{ citesSeedArticleId(citingArticles, props.row.id).length }})
-                  </b-button>
-                  <b-button v-if="citingCount(props.row.id)"
-                    @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
-                    {{ getString('table.detail.filter-seed-cited') }} ({{ citingCount(props.row.id) }})
-                  </b-button>
-                  <b-button v-if="citedCount(props.row.id)"
-                    @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
-                    {{ getString('table.detail.filter-seed-citing') }} ({{ citedCount(props.row.id) }})
                   </b-button>
                 </p>
                 <p class="content" v-if="props.row.authors.length">
@@ -247,15 +263,10 @@
                   <h4 class="title is-6">{{ getString('abstract') }}</h4>
                   <p v-html="formatTags(props.row.abstract)" class="content"></p>
                 </template>
-                <template v-if="currentGraph.source.referenceContexts?.[props.row.id]?.length">
-                  <h4 class="title is-6">Reference contexts in source article, {{ currentGraph.source.authors[0].LN + ' ' + currentGraph.source.year }} (experimental):</h4>
-                  <ul style="list-style-type: disc">
-                    <li v-for="context in currentGraph.source.referenceContexts[props.row.id]">{{ context }} -{{ currentGraph.source.authors[0].LN + ' ' + currentGraph.source.year }}</li>
-                  </ul>
-                </template>
               </template>
 
-              <b-table-column field="numberInSourceReferences" label="#" :meta="getString('table.column.number-in-zotero.tooltip')" :visible="showNumberInSourceReferences" sortable>
+              <b-table-column label="#" :meta="getString('table.column.number-in-zotero.tooltip')" :visible="showNumberInSourceReferences && showColumns.includes('numberInSourceReferences')" 
+                sortable field="numberInSourceReferences">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-right" type="is-dark">
                     {{ column.label }}
@@ -265,7 +276,8 @@
                   {{ (props.row.isSource) ? '' : props.row.numberInSourceReferences }}
                 </template>
               </b-table-column>
-              <b-table-column :label="getString('table.column.title.label')" v-slot="props">
+              <b-table-column :label="getString('table.column.title.label')" v-slot="props" :visible="showColumns.includes('title')"
+                sortable field="title">
                 <!-- id is for scrolling to row when network node is clicked -->
                 <span :id="props.row.id" :class="{ retracted: props.row.isRetracted }">
                   {{ (props.row.id === currentGraph.source?.id) ? 'Source: ' : '' }}
@@ -284,12 +296,14 @@
                   </template>
                 </span>
               </b-table-column>
-              <b-table-column field="authors" :label="getString('table.column.first-author.label')" v-slot="props">
+              <b-table-column :label="getString('table.column.first-author.label')" v-slot="props" :visible="showColumns.includes('author')"
+                sortable :custom-sort="sortAuthorsWrapper">
                 <b-tooltip dashed multilined :label="authorString(props.row.authors)" position="is-left" type="is-dark">
                   {{ props.row.authors[0]?.LN }}
                 </b-tooltip>
               </b-table-column>
-              <b-table-column field="year" :label="getString('table.column.year.label')" meta="Hover year to see journal" sortable>
+              <b-table-column :label="getString('table.column.year.label')" meta="Hover year to see journal" :visible="showColumns.includes('year')"
+                sortable field="year">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -301,7 +315,13 @@
                   </b-tooltip>
                 </template>
               </b-table-column>
-              <b-table-column :label="getString('table.column.references.label')" :meta="getString('table.column.references.tooltip')"
+              <b-table-column :label="getString('table.column.journal.label')" :visible="showColumns.includes('journal')"
+                sortable field="journal">
+                <template v-slot="props">
+                  {{ props.row.journal }}
+                </template>
+              </b-table-column>
+              <b-table-column :label="getString('table.column.references.label')" :meta="getString('table.column.references.tooltip')" :visible="showColumns.includes('totalCitingCount')"
                 sortable :custom-sort="sortReferencesWrapper">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
@@ -314,8 +334,8 @@
                   </b-tooltip>
                 </template>
               </b-table-column>
-              <b-table-column field="citedCount" :label="getString('table.column.in-degree.label')" :meta="getString('table.column.in-degree.tooltip')"
-                sortable :custom-sort="sortCitedWrapper">
+              <b-table-column :label="getString('table.column.in-degree.label')" :meta="getString('table.column.in-degree.tooltip')" :visible="showColumns.includes('citedCount')"
+                sortable :custom-sort="sortCitedWrapper" field="citedCount">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -323,12 +343,14 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.in-degree.tooltip')" dashed position="is-left" type="is-dark">
-                    {{ citedCount(props.row.id) }}
+                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
+                      {{ citedCount(props.row.id) }}
+                    </a>
                   </b-tooltip>
                 </template>
               </b-table-column>
-              <b-table-column field="citingCount" :label="getString('table.column.out-degree.label')" :meta="getString('table.column.out-degree.tooltip')"
-                sortable :custom-sort="sortCitingWrapper">
+              <b-table-column :label="getString('table.column.out-degree.label')" :meta="getString('table.column.out-degree.tooltip')" :visible="showColumns.includes('citingCount')"
+                sortable :custom-sort="sortCitingWrapper" field="citingCount">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -336,7 +358,9 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.out-degree.tooltip')" dashed position="is-left" type="is-dark">
-                    {{ citingCount(props.row.id) }}
+                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
+                      {{ citingCount(props.row.id) }}
+                    </a>
                   </b-tooltip>
                 </template>
               </b-table-column>
@@ -381,33 +405,47 @@
                 :icon-right="filterString ? 'close' : undefined"
                 icon-right-clickable
                 @icon-right-click="filterString=''"></b-input>
-              <span class="button is-static" style="border-radius: 0">{{ citedArticlesFiltered.length + " / " + citedArticles.length }}</span>
-              <b-select v-model="articlesPerPage">
-                <option value="10">10 {{ getString('filter.per-page') }}</option>
-                <option value="20">20 {{ getString('filter.per-page') }}</option>
-                <option value="50">50 {{ getString('filter.per-page') }}</option>
-                <option value="100">100 {{ getString('filter.per-page') }}</option>
-              </b-select>
+              <span class="button is-static" style="border-radius: 0 4px 4px 0">{{ citedArticlesFiltered.length + " / " + citedArticles.length }}</span>
             </b-field>
             <b-table ref="citedArticlesTabTable" :data="citedArticlesFiltered" :selected.sync="selectedCitedArticle" :current-page.sync="citedArticlesTabTablePage"
-              default-sort="citedCount" default-sort-direction="desc"
+              :default-sort="['citedCount', 'desc']"
               @keyup.native.arrow-left="toggleArticle"
               @keyup.native.arrow-right="toggleArticle"
               @keydown.native.arrow-up.capture="tableArrowUpChangePage"
               @keydown.native.arrow-down.capture="tableArrowDownChangePage"
               detailed hoverable striped narrowed focusable
-              :paginated="citedArticlesFiltered.length > articlesPerPage" :per-page="articlesPerPage" pagination-position="both">
+              paginated :per-page="articlesPerPage" pagination-position="both">
+              <template slot="top-left">
+                <b-field grouped>
+                  <b-field>
+                    <b-dropdown multiple v-model="showColumns">
+                      <template #trigger>
+                        <b-button class="select" style="width: 146.65px; padding-left: calc(.75em - 1px); padding-right: 2.5em; text-align: left; border-radius: 4px 0 0 4px; border-right: 0px">
+                          {{ getString('filter.show-columns') }}
+                        </b-button>
+                      </template>
+                      <b-dropdown-item value="numberInSourceReferences" v-if="showNumberInSourceReferences"># Number</b-dropdown-item>
+                      <b-dropdown-item value="title">{{ getString('table.column.title.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="author">{{ getString('table.column.author.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="year">{{ getString('table.column.year.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="journal">{{ getString('table.column.journal.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="totalCitingCount">{{ getString('table.column.references.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="citedCount">{{ getString('table.column.in-degree.label') }}</b-dropdown-item>
+                      <b-dropdown-item value="citingCount">{{ getString('table.column.out-degree.label') }}</b-dropdown-item>
+                    </b-dropdown>
+                  
+                    <b-select v-model="articlesPerPage">
+                      <option value="10">10 {{ getString('filter.per-page') }}</option>
+                      <option value="20">20 {{ getString('filter.per-page') }}</option>
+                      <option value="50">50 {{ getString('filter.per-page') }}</option>
+                      <option value="100">100 {{ getString('filter.per-page') }}</option>
+                      <option value="200">200 {{ getString('filter.per-page') }}</option>
+                      <option value="500">500 {{ getString('filter.per-page') }}</option>
+                    </b-select>
+                  </b-field>
+                </b-field>
+              </template>
               <template slot="detail" slot-scope="props">
-                <p class="content">
-                  <b-button v-if="citingCount(props.row.id)"
-                    @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
-                    {{ getString('table.detail.filter-seed-cited') }} ({{ citingCount(props.row.id) }})
-                  </b-button>
-                  <b-button v-if="citedCount(props.row.id)"
-                    @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
-                    {{ getString('table.detail.filter-seed-citing') }} ({{ citedCount(props.row.id) }})
-                  </b-button>
-                </p>
                 <p class="content" v-if="props.row.authors.length">
                   <b>{{ getString('filter.select.authors') }} ({{ props.row.authors.length }}):</b>
                   <template v-for="(author, index) in props.row.authors">
@@ -430,7 +468,8 @@
                 </template>
               </template>
               
-              <b-table-column :label="getString('table.column.title.label')" v-slot="props">
+              <b-table-column :label="getString('table.column.title.label')" v-slot="props" :visible="showColumns.includes('title')"
+                sortable field="title">
                 <!-- id is for scrolling to row when network node is clicked -->
                 <span :id="props.row.id" :class="{ retracted: props.row.isRetracted }">
                   {{ (props.row.id === currentGraph.source?.id) ? 'Source: ' : (seedArticlesIds.includes(props.row.id) ? (getString('table.column.title.seed-article') + ': ') : '') }}
@@ -449,12 +488,14 @@
                   </template>
                 </span>
               </b-table-column>
-              <b-table-column field="authors" :label="getString('table.column.first-author.label')" v-slot="props">
+              <b-table-column :label="getString('table.column.first-author.label')" v-slot="props" :visible="showColumns.includes('author')"
+                sortable :custom-sort="sortAuthorsWrapper">
                 <b-tooltip dashed multilined :label="authorString(props.row.authors)" position="is-left" type="is-dark">
                   {{ props.row.authors[0]?.LN }}
                 </b-tooltip>
               </b-table-column>
-              <b-table-column field="year" :label="getString('table.column.year.label')" meta="Hover year to see journal" sortable>
+              <b-table-column :label="getString('table.column.year.label')" meta="Hover year to see journal" :visible="showColumns.includes('year')"
+                sortable field="year">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -466,8 +507,14 @@
                   </b-tooltip>
                 </template>
               </b-table-column>
-              <b-table-column field="citedCount" :label="getString('table.column.in-degree.label')" :meta="getString('table.column.in-degree.tooltip')"
-                sortable :custom-sort="sortCitedWrapper">
+              <b-table-column :label="getString('table.column.journal.label')" :visible="showColumns.includes('journal')"
+                sortable field="journal">
+                <template v-slot="props">
+                  {{ props.row.journal }}
+                </template>
+              </b-table-column>
+              <b-table-column :label="getString('table.column.in-degree.label')" :meta="getString('table.column.in-degree.tooltip')" :visible="showColumns.includes('citedCount')"
+                sortable :custom-sort="sortCitedWrapper" field="citedCount">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -475,12 +522,14 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.in-degree.tooltip')" dashed position="is-left" type="is-dark">
-                    {{ citedCount(props.row.id) }}
+                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
+                      {{ citedCount(props.row.id) }}
+                    </a>
                   </b-tooltip>
                 </template>
               </b-table-column>
-              <b-table-column field="citingCount" :label="getString('table.column.out-degree.label')" :meta="getString('table.column.out-degree.tooltip')"
-                sortable :custom-sort="sortCitingWrapper">
+              <b-table-column :label="getString('table.column.out-degree.label')" :meta="getString('table.column.out-degree.tooltip')" :visible="showColumns.includes('citingCount')"
+                sortable :custom-sort="sortCitingWrapper" field="citingCount">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
                     {{ column.label }}
@@ -488,7 +537,9 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.out-degree.tooltip')" dashed position="is-left" type="is-dark">
-                    {{ citingCount(props.row.id) }}
+                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
+                      {{ citingCount(props.row.id) }}
+                    </a>
                   </b-tooltip>
                 </template>
               </b-table-column>
@@ -679,11 +730,6 @@
       </b-modal>
     </section>
 
-    <script>
-      if ((!!window.MSInputMethodContext && !!document.documentMode) || navigator.userAgent.indexOf('MSIE') !== -1 || navigator.userAgent.indexOf('Edge') !== -1) {
-        window.alert('Unfortunately, this web app does not support Microsoft Internet Explorer. Please use current Firefox, Safari, Edge (>2020), or Chrome.')
-      }
-    </script>
     <script src="index.js"></script>
   </body>
 </html>
