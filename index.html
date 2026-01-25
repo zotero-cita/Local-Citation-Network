@@ -429,9 +429,7 @@
                       <b-dropdown-item value="author">{{ getString('table.column.authors.label') }}</b-dropdown-item>
                       <b-dropdown-item value="year">{{ getString('table.column.year.label') }}</b-dropdown-item>
                       <b-dropdown-item value="journal">{{ getString('table.column.journal.label') }}</b-dropdown-item>
-                      <b-dropdown-item value="totalCitingCount">{{ getString('table.column.references.label') }}</b-dropdown-item>
                       <b-dropdown-item value="citedCount">{{ getString('table.column.cited.label') }}</b-dropdown-item>
-                      <b-dropdown-item value="citingCount">{{ getString('table.column.citing.label') }}</b-dropdown-item>
                     </b-dropdown>
                   
                     <b-select v-model="articlesPerPage">
@@ -524,21 +522,6 @@
                   <b-tooltip :label="getString('table.column.cited.tooltip')" dashed position="is-left" type="is-dark">
                     <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
                       {{ citedCount(props.row.id) }}
-                    </a>
-                  </b-tooltip>
-                </template>
-              </b-table-column>
-              <b-table-column :label="getString('table.column.citing.label')" :meta="getString('table.column.citing.tooltip')" :visible="showColumns.includes('citingCount')"
-                sortable :custom-sort="sortCitingWrapper" field="citingCount">
-                <template v-slot:header="{ column }">
-                  <b-tooltip :label="column.meta" dashed position="is-left" type="is-dark">
-                    {{ column.label }}
-                  </b-tooltip>
-                </template>
-                <template v-slot="props">
-                  <b-tooltip :label="getString('table.column.citing.tooltip')" dashed position="is-left" type="is-dark">
-                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
-                      {{ citingCount(props.row.id) }}
                     </a>
                   </b-tooltip>
                 </template>
