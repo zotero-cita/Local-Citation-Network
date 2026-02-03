@@ -102,6 +102,18 @@
         color: #000000;
       }
 
+      /* Dropdowns */
+
+      button.button.select {
+        padding-left: 0.75em;
+        padding-right: 2.5em;
+        text-align: left;
+      }
+
+      .dropdown + .dropdown {
+        margin-left: 0;
+      }
+
       /* Table */
 
       .table.is-narrow th {
@@ -128,11 +140,6 @@
         font-style: normal;
       }
 
-      .mdi-magnify:before {
-        content: "🔍";
-        font: 1.3em bold sans-serif;
-      }
-
       .mdi-close:before {
         content: "×";
         font: 2.3em bold sans-serif;
@@ -141,6 +148,8 @@
       /* Vis.js Network tooltip */
 
       div.vis-tooltip {
+        font-family: sans-serif;
+        font-size: 1.2rem;
         white-space: normal;
         max-width: 20vw;
         word-wrap: break-word;
@@ -183,39 +192,71 @@
               </p>
             </div>
             <b-field>
-              <b-select v-model="filterColumn">
-                <option value="titleAbstract">{{ getString('filter.select.title-abstract') }}</option>
-                <option value="authors">{{ getString('filter.select.authors') }}</option>
-                <option value="year">{{ getString('filter.select.year') }}</option>
-                <option value="journal">{{ getString('filter.select.journal') }}</option>
-                <option value="citedById">{{ getString('filter.select.cited-by-id') }}</option>
-                <option value="citingId">{{ getString('filter.select.citing-id') }}</option>
-              </b-select>
-              <b-input v-model="filterString" icon="magnify" :placeholder="getString('filter.input.placeholder')" expanded
-                :icon-right="filterString ? 'close' : undefined"
-                icon-right-clickable
-                @icon-right-click="filterString=''"></b-input>
-              <span class="button is-static" style="border-radius: 0 4px 4px 0">{{ seedArticlesFiltered.length + " / " + seedArticles.length }}</span>
+              <b-dropdown append-to-body :trigger-tabindex="-1" animation="" @active-change="active => active && setTimeout(() => document.getElementById('filterTitleAbstract').focus(), 1)">
+                <template #trigger>
+                  <b-button class="select" style="width: 150px; border-radius: 4px 0 0 4px">
+                    {{ getString('filter.articles') }}
+                  </b-button>
+                </template>
+                <b-dropdown-item :focusable="false" custom paddingless>
+                  <div class="modal-card" style="width:740px;">
+                    <section class="modal-card-body" style="padding-right: 40px">
+                      <b-field :label="getString('filter.title-abstract')" horizontal>
+                        <b-input id="filterTitleAbstract" lazy v-model="filterTitleAbstract" :icon-right="filterTitleAbstract ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterTitleAbstract=''"></b-input>
+                      </b-field>
+                      <b-field :label="getString('filter.authors')" horizontal>
+                        <b-input lazy v-model="filterAuthors" :icon-right="filterAuthors ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterAuthors=''"></b-input>
+                      </b-field>
+                      <b-field :label="getString('filter.year-range')" horizontal>
+                        <b-slider lazy v-model="filterYearRange" :min="yearRangeDefault[0]" :max="yearRangeDefault[1]" size="is-medium" indicator :custom-formatter="(x) => String(x)"></b-slider>
+                      </b-field>
+                      <b-field :label="getString('filter.journal')" horizontal>
+                        <b-input lazy v-model="filterJournal" :icon-right="filterJournal ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterJournal=''"></b-input>
+                      </b-field>
+                    </section>
+                  </div>
+                </b-dropdown-item>
+              </b-dropdown>
+              <div class="input is-static control has-icons-right is-expanded" style="padding-left: calc(.75em - 1px); border: 1px solid #dbdbdb; border-left: 0; border-radius: 0; background-color: #f4f4f4; color: #353535; overflow: hidden">
+                <template v-if="uiFilterId || filterTitleAbstract || filterAuthors || ((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1])) || filterJournal">
+                  <span style="display: block; white-space: nowrap; overflow-x: auto; width: 0; min-width: calc(100% - 2.5em);">
+                    <template v-if="uiFilterId">
+                      {{ ['citedById', 'citedBySeedArticleId'].includes(uiFilterType) ? getString('filter.cited-by') : getString('filter.citing') }}:&nbsp;<a @click="() => {let id=uiFilterId; uiFilterId=''; setTimeout(() => selectId(id), 1)}">{{ articleIdToObject(uiFilterId).authors[0]?.LN + ' ' + articleIdToObject(uiFilterId).year }}</a>;
+                    </template>
+                    {{ ((filterTitleAbstract) ? getString('filter.title-abstract') + ': ' +  filterTitleAbstract + "; ": '' ) }}
+                    {{ ((filterAuthors) ? getString('filter.authors') + ': ' +  filterAuthors + "; ": '' ) }}
+                    {{ (((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1]))) ? getString('filter.year-range') + ': ' + filterYearRange[0] + " - " + filterYearRange[1] + '; ' : '' }}
+                    {{ ((filterJournal) ? getString('filter.journal') + ': ' +  filterJournal + "; ": '' ) }}
+                  </span>
+                  <span class="icon is-right is-clickable" @click="uiFilterId=''; filterTitleAbstract=''; filterAuthors=''; filterYearRange=[]; filterJournal=''"><i class="mdi mdi-close mdi-24px" style="color: #494949"></i></span>
+                </template>
+                <template v-else>
+                  {{ getString('filter.no-filters-applied') }}
+                </template>
+              </div>
+              <div class="button is-static" style="border-radius: 0 4px 4px 0">
+                {{ seedArticlesFiltered.length + " / " + seedArticles.length }}
+              </div>
             </b-field>
-            <b-table ref="seedArticlesTabTable" :data="seedArticlesFiltered" :selected.sync="selectedSeedArticle" :current-page.sync="seedArticlesTabTablePage"
+            <b-table ref="seedArticlesTabTable" :data="seedArticlesFiltered" :selected.sync="selectedArticle" :current-page.sync="seedArticlesTabTablePage"
               :default-sort="['numberInSourceReferences', 'asc']"
               @keyup.native.arrow-left="toggleArticle"
               @keyup.native.arrow-right="toggleArticle"
               @keydown.native.arrow-up.capture="tableArrowUpChangePage"
               @keydown.native.arrow-down.capture="tableArrowDownChangePage"
-              detailed :has-detailed-visible="row => (row.authors.length || citedCount(row.id) || citingCount(row.id) || row.abstract || row.tldr)"
+              detailed :has-detailed-visible="row => (row.authors.length || row.abstract || row.tldr)"
               hoverable striped narrowed focusable
               paginated :per-page="articlesPerPage" pagination-position="both">
               <template slot="top-left">
                 <b-field grouped>
                   <b-field>
-                    <b-dropdown multiple v-model="showColumns">
+                    <b-dropdown multiple v-model="showColumns" :trigger-tabindex="-1" animation="">
                       <template #trigger>
-                        <b-button class="select" style="width: 146.65px; padding-left: calc(.75em - 1px); padding-right: 2.5em; text-align: left; border-radius: 4px 0 0 4px; border-right: 0px">
+                        <b-button class="select" style="width: 150px; border-radius: 4px 0 0 4px">
                           {{ getString('filter.show-columns') }}
                         </b-button>
                       </template>
-                      <b-dropdown-item value="numberInSourceReferences" v-if="showNumberInSourceReferences"># {{ getString('table.column.number-in-zotero.tooltip') }}</b-dropdown-item>
+                      <b-dropdown-item value="numberInSourceReferences"># {{ getString('table.column.number-in-zotero.tooltip') }}</b-dropdown-item>
                       <b-dropdown-item value="title">{{ getString('table.column.title.label') }}</b-dropdown-item>
                       <b-dropdown-item value="author">{{ getString('table.column.authors.label') }}</b-dropdown-item>
                       <b-dropdown-item value="year">{{ getString('table.column.year.label') }}</b-dropdown-item>
@@ -224,27 +265,31 @@
                       <b-dropdown-item value="citedCount">{{ getString('table.column.cited.label') }}</b-dropdown-item>
                       <b-dropdown-item value="citingCount">{{ getString('table.column.citing.label') }}</b-dropdown-item>
                     </b-dropdown>
-                  
-                    <b-select v-model="articlesPerPage">
-                      <option value="10">{{ getString('filter.show-rows-per-page', 10) }}</option>
-                      <option value="20">{{ getString('filter.show-rows-per-page', 20) }}</option>
-                      <option value="50">{{ getString('filter.show-rows-per-page', 50) }}</option>
-                      <option value="100">{{ getString('filter.show-rows-per-page', 100) }}</option>
-                      <option value="200">{{ getString('filter.show-rows-per-page', 200) }}</option>
-                      <option value="500">{{ getString('filter.show-rows-per-page', 500) }}</option>
-                    </b-select>
+                    <b-dropdown v-model="articlesPerPage" :trigger-tabindex="-1" animation="">
+                      <template #trigger>
+                        <b-button class="select" style="border-radius: 0 4px 4px 0; border-left: 0">
+                          {{ getString('filter.show-rows-per-page', articlesPerPage) }}
+                        </b-button>
+                      </template>
+                      <b-dropdown-item :value="10">{{ getString('filter.show-rows-per-page', 10) }}</b-dropdown-item>
+                      <b-dropdown-item :value="20">{{ getString('filter.show-rows-per-page', 20) }}</b-dropdown-item>
+                      <b-dropdown-item :value="50">{{ getString('filter.show-rows-per-page', 50) }}</b-dropdown-item>
+                      <b-dropdown-item :value="100">{{ getString('filter.show-rows-per-page', 100) }}</b-dropdown-item>
+                      <b-dropdown-item :value="200">{{ getString('filter.show-rows-per-page', 200) }}</b-dropdown-item>
+                      <b-dropdown-item :value="500">{{ getString('filter.show-rows-per-page', 500) }}</b-dropdown-item>
+                    </b-dropdown>
                   </b-field>
                 </b-field>
               </template>
               <template slot="detail" slot-scope="props">
                 <p class="content" v-if="citedArticles.length && ((currentGraph.allCited) ? (props.row.referencesCount || props.row.references?.length) : citedBySeedArticleId(citedArticles, props.row.id).length)">
                   <b-button v-if="citedArticles.length && ((currentGraph.allCited) ? (props.row.referencesCount || props.row.references?.length) : citedBySeedArticleId(citedArticles, props.row.id).length)" 
-                    @click="showArticlesTab='citedArticlesTab'; filterColumn='citedBySeedArticleId'; filterString=props.row.id">
+                    @click="showArticlesTab='citedArticlesTab'; uiFilterType='citedBySeedArticleId'; uiFilterId=props.row.id">
                     {{ getString('table.detail.filter-cited') }} ({{ citedBySeedArticleId(citedArticles, props.row.id).length }})
                   </b-button>
                 </p>
                 <p class="content" v-if="props.row.authors.length">
-                  <b>{{ getString('filter.select.authors') }} ({{ props.row.authors.length }}):</b>
+                  <b>{{ getString('filter.authors') }} ({{ props.row.authors.length }}):</b>
                   <template v-for="(author, index) in props.row.authors">
                     <template v-if="index !== 0">; </template>
                     <b-tooltip
@@ -343,7 +388,7 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.cited.tooltip')" dashed position="is-left" type="is-dark">
-                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
+                    <a @click.stop="showArticlesTab='seedArticlesTab'; uiFilterType='citingId'; uiFilterId=props.row.id">
                       {{ citedCount(props.row.id) }}
                     </a>
                   </b-tooltip>
@@ -358,7 +403,7 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.citing.tooltip')" dashed position="is-left" type="is-dark">
-                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citedById'; filterString=props.row.id">
+                    <a @click.stop="showArticlesTab='seedArticlesTab'; uiFilterType='citedById'; uiFilterId=props.row.id">
                       {{ citingCount(props.row.id) }}
                     </a>
                   </b-tooltip>
@@ -394,58 +439,95 @@
               </p>
             </div>
             <b-field>
-              <b-select v-model="filterColumn">
-                <option value="titleAbstract">{{ getString('filter.select.title-abstract') }}</option>
-                <option value="authors">{{ getString('filter.select.authors') }}</option>
-                <option value="year">{{ getString('filter.select.year') }}</option>
-                <option value="journal">{{ getString('filter.select.journal') }}</option>
-                <option value="citedBySeedArticleId">{{ getString('filter.select.cited-by-id') }}</option>
-              </b-select>
-              <b-input v-model="filterString" icon="magnify" :placeholder="getString('filter.input.placeholder')" expanded
-                :icon-right="filterString ? 'close' : undefined"
-                icon-right-clickable
-                @icon-right-click="filterString=''"></b-input>
-              <span class="button is-static" style="border-radius: 0 4px 4px 0">{{ citedArticlesFiltered.length + " / " + citedArticles.length }}</span>
+              <b-dropdown append-to-body :trigger-tabindex="-1" animation="" @active-change="active => active && setTimeout(() => document.getElementById('filterTitleAbstract').focus(), 1)">
+                <template #trigger>
+                  <b-button class="select" style="width: 150px; border-radius: 4px 0 0 4px">
+                    {{ getString('filter.articles') }}
+                  </b-button>
+                </template>
+                <b-dropdown-item :focusable="false" custom paddingless>
+                  <div class="modal-card" style="width:740px;">
+                    <section class="modal-card-body" style="padding-right: 40px">
+                      <b-field :label="getString('filter.title-abstract')" horizontal>
+                        <b-input id="filterTitleAbstract" lazy v-model="filterTitleAbstract" :icon-right="filterTitleAbstract ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterTitleAbstract=''"></b-input>
+                      </b-field>
+                      <b-field :label="getString('filter.authors')" horizontal>
+                        <b-input lazy v-model="filterAuthors" :icon-right="filterAuthors ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterAuthors=''"></b-input>
+                      </b-field>
+                      <b-field :label="getString('filter.year-range')" horizontal>
+                        <b-slider lazy v-model="filterYearRange" :min="yearRangeDefault[0]" :max="yearRangeDefault[1]" size="is-medium" indicator :custom-formatter="(x) => String(x)"></b-slider>
+                      </b-field>
+                      <b-field :label="getString('filter.journal')" horizontal>
+                        <b-input lazy v-model="filterJournal" :icon-right="filterJournal ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterJournal=''"></b-input>
+                      </b-field>
+                    </section>
+                  </div>
+                </b-dropdown-item>
+              </b-dropdown>
+              <div class="input is-static control has-icons-right is-expanded" style="padding-left: calc(.75em - 1px); border: 1px solid #dbdbdb; border-left: 0; border-radius: 0; background-color: #f4f4f4; color: #353535; overflow: hidden">
+                <template v-if="uiFilterId || filterTitleAbstract || filterAuthors || ((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1])) || filterJournal">
+                  <span style="display: block; white-space: nowrap; overflow-x: auto; width: 0; min-width: calc(100% - 2.5em);">
+                    <template v-if="uiFilterId">
+                      {{ ['citedById', 'citedBySeedArticleId'].includes(uiFilterType) ? getString('filter.cited-by') : getString('filter.citing') }}:&nbsp;<a @click="() => {let id=uiFilterId; uiFilterId=''; setTimeout(() => selectId(id), 1)}">{{ articleIdToObject(uiFilterId).authors[0]?.LN + ' ' + articleIdToObject(uiFilterId).year }}</a>;
+                    </template>
+                    {{ ((filterTitleAbstract) ? getString('filter.title-abstract') + ': ' +  filterTitleAbstract + "; ": '' ) }}
+                    {{ ((filterAuthors) ? getString('filter.authors') + ': ' +  filterAuthors + "; ": '' ) }}
+                    {{ (((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1]))) ? getString('filter.year-range') + ': ' + filterYearRange[0] + " - " + filterYearRange[1] + '; ' : '' }}
+                    {{ ((filterJournal) ? getString('filter.journal') + ': ' +  filterJournal + "; ": '' ) }}
+                  </span>
+                  <span class="icon is-right is-clickable" @click="uiFilterId=''; filterTitleAbstract=''; filterAuthors=''; filterYearRange=[]; filterJournal=''"><i class="mdi mdi-close mdi-24px" style="color: #494949"></i></span>
+                </template>
+                <template v-else>
+                  {{ getString('filter.no-filters-applied') }}
+                </template>
+              </div>
+              <div class="button is-static" style="border-radius: 0 4px 4px 0">
+                {{ citedArticlesFiltered.length + " / " + citedArticles.length }}
+              </div>
             </b-field>
-            <b-table ref="citedArticlesTabTable" :data="citedArticlesFiltered" :selected.sync="selectedCitedArticle" :current-page.sync="citedArticlesTabTablePage"
+            <b-table ref="citedArticlesTabTable" :data="citedArticlesFiltered" :selected.sync="selectedArticle" :current-page.sync="citedArticlesTabTablePage"
               :default-sort="['citedCount', 'desc']"
               @keyup.native.arrow-left="toggleArticle"
               @keyup.native.arrow-right="toggleArticle"
               @keydown.native.arrow-up.capture="tableArrowUpChangePage"
               @keydown.native.arrow-down.capture="tableArrowDownChangePage"
-              detailed hoverable striped narrowed focusable
+              detailed :has-detailed-visible="row => (row.authors.length || row.abstract || row.tldr)"
+              hoverable striped narrowed focusable
               paginated :per-page="articlesPerPage" pagination-position="both">
               <template slot="top-left">
                 <b-field grouped>
                   <b-field>
-                    <b-dropdown multiple v-model="showColumns">
+                    <b-dropdown multiple v-model="showColumns" :trigger-tabindex="-1" animation="">
                       <template #trigger>
-                        <b-button class="select" style="width: 146.65px; padding-left: calc(.75em - 1px); padding-right: 2.5em; text-align: left; border-radius: 4px 0 0 4px; border-right: 0px">
+                        <b-button class="select" style="width: 150px; border-radius: 4px 0 0 4px">
                           {{ getString('filter.show-columns') }}
                         </b-button>
                       </template>
-                      <b-dropdown-item value="numberInSourceReferences" v-if="showNumberInSourceReferences"># {{ getString('table.column.number-in-zotero.tooltip') }}</b-dropdown-item>
                       <b-dropdown-item value="title">{{ getString('table.column.title.label') }}</b-dropdown-item>
                       <b-dropdown-item value="author">{{ getString('table.column.authors.label') }}</b-dropdown-item>
                       <b-dropdown-item value="year">{{ getString('table.column.year.label') }}</b-dropdown-item>
                       <b-dropdown-item value="journal">{{ getString('table.column.journal.label') }}</b-dropdown-item>
                       <b-dropdown-item value="citedCount">{{ getString('table.column.cited.label') }}</b-dropdown-item>
                     </b-dropdown>
-                  
-                    <b-select v-model="articlesPerPage">
-                      <option value="10">{{ getString('filter.show-rows-per-page', 10) }}</option>
-                      <option value="20">{{ getString('filter.show-rows-per-page', 20) }}</option>
-                      <option value="50">{{ getString('filter.show-rows-per-page', 50) }}</option>
-                      <option value="100">{{ getString('filter.show-rows-per-page', 100) }}</option>
-                      <option value="200">{{ getString('filter.show-rows-per-page', 200) }}</option>
-                      <option value="500">{{ getString('filter.show-rows-per-page', 500) }}</option>
-                    </b-select>
+                    <b-dropdown v-model="articlesPerPage" :trigger-tabindex="-1" animation="">
+                      <template #trigger>
+                        <b-button class="select" style="border-radius: 0 4px 4px 0; border-left: 0">
+                          {{ getString('filter.show-rows-per-page', articlesPerPage) }}
+                        </b-button>
+                      </template>
+                      <b-dropdown-item :value="10">{{ getString('filter.show-rows-per-page', 10) }}</b-dropdown-item>
+                      <b-dropdown-item :value="20">{{ getString('filter.show-rows-per-page', 20) }}</b-dropdown-item>
+                      <b-dropdown-item :value="50">{{ getString('filter.show-rows-per-page', 50) }}</b-dropdown-item>
+                      <b-dropdown-item :value="100">{{ getString('filter.show-rows-per-page', 100) }}</b-dropdown-item>
+                      <b-dropdown-item :value="200">{{ getString('filter.show-rows-per-page', 200) }}</b-dropdown-item>
+                      <b-dropdown-item :value="500">{{ getString('filter.show-rows-per-page', 500) }}</b-dropdown-item>
+                    </b-dropdown>
                   </b-field>
                 </b-field>
               </template>
               <template slot="detail" slot-scope="props">
                 <p class="content" v-if="props.row.authors.length">
-                  <b>{{ getString('filter.select.authors') }} ({{ props.row.authors.length }}):</b>
+                  <b>{{ getString('filter.authors') }} ({{ props.row.authors.length }}):</b>
                   <template v-for="(author, index) in props.row.authors">
                     <template v-if="index !== 0">; </template>
                     <b-tooltip
@@ -470,7 +552,7 @@
                 sortable field="title">
                 <!-- id is for scrolling to row when network node is clicked -->
                 <span :id="props.row.id" :class="{ retracted: props.row.isRetracted }">
-                  {{ (props.row.id === currentGraph.source?.id) ? 'Source: ' : (seedArticlesIds.includes(props.row.id) ? (getString('table.column.title.seed-article') + ': ') : '') }}
+                  {{ (seedArticlesIds.includes(props.row.id) ? (getString('table.column.title.seed-article') + ': ') : '') }}
                   <template v-if="props.row.id.substr(0,3) !== 'tmp'">
                     <a @click="e => {e.preventDefault(); openItem(props.row.id)}" href="">
                       {{ props.row.title }}
@@ -520,7 +602,7 @@
                 </template>
                 <template v-slot="props">
                   <b-tooltip :label="getString('table.column.cited.tooltip')" dashed position="is-left" type="is-dark">
-                    <a @click="showArticlesTab='seedArticlesTab'; filterColumn='citingId'; filterString=props.row.id">
+                    <a @click.stop="showArticlesTab='seedArticlesTab'; uiFilterType='citingId'; uiFilterId=props.row.id">
                       {{ citedCount(props.row.id) }}
                     </a>
                   </b-tooltip>
@@ -537,21 +619,12 @@
             <b-loading :is-full-page="false" :active="citationNetworkIsLoading"></b-loading>
             <div id="citationNetwork" style="height: 100%; cursor: pointer;" :loading="true"></div>
             <span style="position:absolute; top: 0; left: 1rem">
-              <a @click="fullscreenNetwork = !fullscreenNetwork; setTimeout(function () { citationNetwork.fit() }, 1)" :title="getString('networks.fullscreen.toggle')">{{ (fullscreenNetwork) ? getString('networks.show-tables') : getString('networks.fullscreen') }}</a> /
+              <a @click="fullscreenNetwork = !fullscreenNetwork; setTimeout(() => citationNetwork.fit(), 1)" :title="getString('networks.fullscreen.toggle')">{{ (fullscreenNetwork) ? getString('networks.show-tables') : getString('networks.fullscreen') }}</a> /
               <a @click="indexFAQ = 'citation-network'; showFAQ = true;" href="#citation-network">{{ getString('networks.how-to') }}</a> /
               <a @click="showCitationNetworkSettings = true">{{ getString('networks.settings') }}</a> /
               <a @click="$set(currentGraph, 'citationNetworkTurned', !currentGraph.citationNetworkTurned); changeCurrentNetworkSettings()" :title="getString('networks.rotate')">{{ (currentGraph.citationNetworkTurned) ? '↺' : '↻'}}</a>
             </span>
             <span style="position:absolute; top: 0; right: 0" v-if="true || citationNetwork?.layoutEngine.options.hierarchical.enabled">{{ (['LR', 'DU'].includes(citationNetwork?.layoutEngine.options.hierarchical.direction)) ? getString('networks.citation.newer-articles') : getString('networks.citation.older-articles') }} {{ (['LR', 'RL'].includes(citationNetwork?.layoutEngine.options.hierarchical.direction)) ? '→' : '↑' }}</span>
-            <!--<span style="position:absolute; bottom: 0; left: 1rem">
-              (seed articles and articles with a minimum rank of
-              <select v-model="citationNetworkMinRank" @change="changeCurrentNetworkSettings()">
-                <template v-for="val in [...Array(100).keys()].splice(1)">
-                  <option :value="val">{{ val }}</option>
-                </template>
-              </select>
-              are shown)
-            </span>-->
             <span style="position:absolute; bottom: 0; right: 0" v-if="true || citationNetwork?.layoutEngine.options.hierarchical.enabled">{{ (['LR', 'DU'].includes(citationNetwork?.layoutEngine.options.hierarchical.direction)) ? getString('networks.citation.older-articles') : getString('networks.citation.newer-articles') }} {{ (['LR', 'RL'].includes(citationNetwork?.layoutEngine.options.hierarchical.direction)) ? '←' : '↓' }}</span>
           </b-tab-item>
           <b-tab-item>
@@ -560,7 +633,7 @@
             <b-loading :is-full-page="false" :active="authorNetworkIsLoading"></b-loading>
             <div id="authorNetwork" style="height: 100%; cursor: pointer;"></div>
             <span style="position:absolute; top: 0; left: 1rem">
-              <a @click="fullscreenNetwork = !fullscreenNetwork; setTimeout(function () { authorNetwork.fit() }, 1)" :title="getString('networks.fullscreen.toggle')">{{ (fullscreenNetwork) ? getString('networks.show-tables') : getString('networks.fullscreen') }}</a> /
+              <a @click="fullscreenNetwork = !fullscreenNetwork; setTimeout(() => authorNetwork.fit(), 1)" :title="getString('networks.fullscreen.toggle')">{{ (fullscreenNetwork) ? getString('networks.show-tables') : getString('networks.fullscreen') }}</a> /
               <a @click="indexFAQ = 'author-network'; showFAQ = true;" href="#author-network">{{ getString('networks.how-to') }}</a> /
               <a @click="showAuthorNetworkSettings = true">{{ getString('networks.settings') }}</a>
             </span>
@@ -595,8 +668,8 @@
             <b-field grouped>
               <b-field :label="getString('network-settings-modal.node-color')" label-position="on-border">
                 <b-select v-model="citationNetworkNodeColor" @input="changeCurrentNetworkSettings()">
-                  <option value="year">{{ getString('filter.select.year') }}</option>
-                  <option value="journal">{{ getString('filter.select.journal') }}</option>
+                  <option value="year">{{ getString('filter.year') }}</option>
+                  <option value="journal">{{ getString('filter.journal') }}</option>
                 </b-select>
               </b-field>
             </b-field>
@@ -654,7 +727,7 @@
         </div>
       </b-modal>
 
-      <b-modal :active.sync="showOptionsExportArticles" :width="460">
+      <b-modal :active.sync="showOptionsExportArticles" :width="320">
         <div class="card">
           <header class="modal-card-head">
             <content>
@@ -662,14 +735,11 @@
             </content>
           </header>
           <div class="card-content">
-            <p class="content">
-              {{ getString('export-modal.p1') }}
-            </p>
-            <b-field><b-checkbox v-model="exportArticles" native-value="seedArticles">{{ getString('input-articles.header', seedArticles?.length) }}</b-checkbox></b-field>
-            <b-field><b-checkbox v-model="exportArticles" native-value="citedArticlesDeDuplicated">{{ getString('export-modal.cited', citedArticlesDeDuplicated?.length) }}</b-checkbox></b-field>
-            <b-field><b-checkbox v-model="exportArticles" native-value="citingArticlesDeDuplicated" v-if="currentGraph.citingArticles?.length">Citing Articles ({{ citingArticlesDeDuplicated?.length }})</b-checkbox></b-field>
-            <b-field><b-checkbox v-model="exportArticles" native-value="coCitedArticlesDeDuplicated" v-if="currentGraph.API === 'Co*Citation Network via OpenAlex'">Co-Cited Articles ({{ coCitedArticlesDeDuplicated?.length }})</b-checkbox></b-field>
-            <b-field><b-checkbox v-model="exportArticles" native-value="coCitingArticlesDeDuplicated" v-if="currentGraph.API === 'Co*Citation Network via OpenAlex'">Co-Citing Articles ({{ coCitingArticlesDeDuplicated?.length }})</b-checkbox></b-field>
+            <b-field><b-checkbox v-model="currentGraph.deDuplicate">{{ getString('export-modal.checkbox.de-duplicate') }}</b-checkbox></b-field>
+            <b-field><b-checkbox v-model="exportArticlesFiltered">{{ getString('export-modal.checkbox.apply-filters') }}</b-checkbox></b-field>
+            <p class="content">{{ getString('export-modal.p1') }}</p>
+            <b-field><b-checkbox v-model="exportArticles" native-value="seedArticles">{{ getString('input-articles.header', String(this["seedArticles" + ((this.exportArticlesFiltered) ? 'Filtered' : '')].length)) }}</b-checkbox></b-field>
+            <b-field><b-checkbox v-model="exportArticles" native-value="citedArticlesDeDuplicated">{{ getString('export-modal.cited', String(this["citedArticles" + ((this.exportArticlesFiltered) ? 'Filtered' : '')].length)) }}</b-checkbox></b-field>
           </div>
           <footer class="modal-card-foot">
             <b-button type="is-primary" :title="getString('export-modal.csv.title')" @click="downloadCSVData(exportArticlesArray)">{{ getString('export-modal.export') }} CSV ({{ exportArticlesArray.length }})</b-button>
