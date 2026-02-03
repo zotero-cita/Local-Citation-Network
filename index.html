@@ -168,26 +168,21 @@
             <div class="content">
               <p>
                 <a @click="fullscreenTable = !fullscreenTable; if (fullscreenTable) resetBothNetworks(); else initCurrentNetwork();" :title="getString('tables.fullscreen.toggle')">{{ (fullscreenTable) ? getString('tables.show-networks') : getString('tables.fullscreen') }}</a>
-                <!-- Make sure network is fully loaded (otherwise citedArticles / citingArticles tabs would show eternal spinning wheels when JSON is reloaded) -->
-                <template v-if="citedArticles && citingArticles">
-                  / <a @click="showOptionsExportArticles = true">{{ getString('tables.export-csv-ris') }}</a> /
-                  <b-tooltip dashed multilined position="is-bottom" type="is-dark"
-                    :label="getString('tables.download-full-network-json.tooltip')">
-                    <a @click="downloadJSON">{{ getString('tables.download-full-network-json') }}</a>
-                  </b-tooltip>
-                </template>
+                / <a @click="showOptionsExportArticles = true">{{ getString('tables.export-csv-ris') }}</a>
+                / <b-tooltip dashed multilined position="is-bottom" type="is-dark"
+                  :label="getString('tables.download-full-network-json.tooltip')">
+                  <a @click="downloadJSON">{{ getString('tables.download-full-network-json') }}</a>
+                </b-tooltip>
               </p>
               <p>
                 {{ getString('input-articles.info.source') }}
-                <b-tooltip dashed multilined type="is-dark" position="is-bottom" :label="completenessLabel" v-if="currentGraph.API !== 'Co*Citation Network via OpenAlex'">
+                <b-tooltip dashed multilined type="is-dark" position="is-bottom" :label="completenessLabel">
                   ({{ getString('input-articles.info.completeness', completenessPercent) }})
                 </b-tooltip>.
                 {{ getString('input-articles.info.open-external', 'Local Citation Network') }}
                 <b-tooltip dashed multilined position="is-bottom" type="is-dark"
                   :label="getString('input-articles.info.open-external.tooltip', currentGraph.source?.customListOfReferences?.length)">
-                  <a @click="e => { e.preventDefault(); openUrl('https://LocalCitationNetwork.github.io/?listOfIds=' + currentGraph.source?.customListOfReferences.join(',')) }">
-                    &#8618
-                  </a>
+                  <a @click="e => { e.preventDefault(); openUrl('https://LocalCitationNetwork.github.io/?listOfIds=' + currentGraph.source?.customListOfReferences.join(',')) }">↪</a>
                 </b-tooltip>
               </p>
             </div>
@@ -298,7 +293,7 @@
                       :triggers="['click']"
                       :auto-close="['outside', 'escape']">
                       <template v-slot:content>
-                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}">Google Scholar</a>
+                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}" :title="getString('open-in-browser')">Google Scholar ↪</a>
                       </template>
                       <a>{{ authorString([author]) }}</a>
                     </b-tooltip>
@@ -310,7 +305,7 @@
                 </template>
               </template>
 
-              <b-table-column label="#" :meta="getString('table.column.number-in-zotero.tooltip')" :visible="showNumberInSourceReferences && showColumns.includes('numberInSourceReferences')" 
+              <b-table-column label="#" :meta="getString('table.column.number-in-zotero.tooltip')" :visible="showColumns.includes('numberInSourceReferences')" 
                 sortable field="numberInSourceReferences">
                 <template v-slot:header="{ column }">
                   <b-tooltip :label="column.meta" dashed position="is-right" type="is-dark">
@@ -325,20 +320,15 @@
                 sortable field="title">
                 <!-- id is for scrolling to row when network node is clicked -->
                 <span :id="props.row.id" :class="{ retracted: props.row.isRetracted }">
-                  {{ (props.row.id === currentGraph.source?.id) ? 'Source: ' : '' }}
                   <template v-if="props.row.id.substr(0,3) !== 'tmp'">
-                    <a @click="e => {e.preventDefault(); openItem(props.row.id)}" href="">
+                    <a @click="e => {e.preventDefault(); openItem(props.row.id)}">
                       {{ props.row.title }}
-                    </a>
-                  </template>
-                  <template v-else-if="props.row.url">
-                    <a @click="e => {e.preventDefault(); openUrl(props.row.url)}" href="">
-                      {{ props.row.title + ' \u21AA' }}
                     </a>
                   </template>
                   <template v-else>
                     {{ props.row.title }}
                   </template>
+                  <a @click="e => {e.preventDefault(); openUrl(props.row.url ?? 'https://doi.org/' + props.row.doi)}" :title="getString('open-in-browser')" v-if="props.row.url || props.row.doi">↪</a>
                 </span>
               </b-table-column>
               <b-table-column :label="getString('table.column.authors.label')" v-slot="props" :visible="showColumns.includes('author')"
@@ -413,7 +403,7 @@
           </b-tab-item>
 
           <!-- Have to use currentGraph.citedArticles === undefined to show progress indicator because the computed always returns [] if undefined -->
-          <b-tab-item value="citedArticlesTab" :disabled="currentGraph.citedArticles === undefined" v-if="currentGraph.citedArticles === undefined || citedArticles.length || currentGraph.API === 'Co*Citation Network via OpenAlex'">
+          <b-tab-item value="citedArticlesTab">
             <template slot="header">
               <h2 class="title is-4">
                 {{ getString('all-cited.header', ['▲', citedArticles.length]) }}
@@ -422,14 +412,11 @@
             <div class="content" v-if="citedArticles.length">
               <p>
                 <a @click="fullscreenTable = !fullscreenTable; if (fullscreenTable) resetBothNetworks(); else initCurrentNetwork();" :title="getString('tables.fullscreen.toggle')">{{ (fullscreenTable) ? getString('tables.show-networks') : getString('tables.fullscreen') }}</a>
-                <!-- Make sure network is fully loaded (otherwise citedArticles / citingArticles tabs would show eternal spinning wheels when JSON is reloaded) -->
-                <template v-if="citedArticles && citingArticles">
-                  / <a @click="showOptionsExportArticles = true">{{ getString('tables.export-csv-ris') }}</a> /
-                  <b-tooltip dashed multilined position="is-bottom" type="is-dark"
-                    :label="getString('tables.download-full-network-json.tooltip')">
-                    <a @click="downloadJSON">{{ getString('tables.download-full-network-json') }}</a>
-                  </b-tooltip>
-                </template>
+                / <a @click="showOptionsExportArticles = true">{{ getString('tables.export-csv-ris') }}</a>
+                / <b-tooltip dashed multilined position="is-bottom" type="is-dark"
+                  :label="getString('tables.download-full-network-json.tooltip')">
+                  <a @click="downloadJSON">{{ getString('tables.download-full-network-json') }}</a>
+                </b-tooltip>
               </p>
               <p>
                 {{ getString('all-cited.info') }}
@@ -460,12 +447,19 @@
                       <b-field :label="getString('filter.journal')" horizontal>
                         <b-input lazy v-model="filterJournal" :icon-right="filterJournal ? 'close' : undefined" icon-right-clickable @icon-right-click.stop="filterJournal=''"></b-input>
                       </b-field>
+                      <div class="block">
+                        <b-field label="Zotero Cita" horizontal>
+                          <b-radio v-model="filterInZotero" native-value="all">{{ getString('filter.in-zotero.all') }}</b-radio>
+                          <b-radio v-model="filterInZotero" native-value="inLibrary">{{ getString('filter.in-zotero.in-library') }}</b-radio>
+                          <b-radio v-model="filterInZotero" native-value="notInLibrary">{{ getString('filter.in-zotero.not-in-library') }}</b-radio>
+                        </b-field>
+                      </div>
                     </section>
                   </div>
                 </b-dropdown-item>
               </b-dropdown>
               <div class="input is-static control has-icons-right is-expanded" style="padding-left: calc(.75em - 1px); border: 1px solid #dbdbdb; border-left: 0; border-radius: 0; background-color: #f4f4f4; color: #353535; overflow: hidden">
-                <template v-if="uiFilterId || filterTitleAbstract || filterAuthors || ((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1])) || filterJournal">
+                <template v-if="uiFilterId || filterTitleAbstract || filterAuthors || ((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1])) || filterJournal || filterInZotero !== 'all'">
                   <span style="display: block; white-space: nowrap; overflow-x: auto; width: 0; min-width: calc(100% - 2.5em);">
                     <template v-if="uiFilterId">
                       {{ ['citedById', 'citedBySeedArticleId'].includes(uiFilterType) ? getString('filter.cited-by') : getString('filter.citing') }}:&nbsp;<a @click="() => {let id=uiFilterId; uiFilterId=''; setTimeout(() => selectId(id), 1)}">{{ articleIdToObject(uiFilterId).authors[0]?.LN + ' ' + articleIdToObject(uiFilterId).year }}</a>;
@@ -474,8 +468,9 @@
                     {{ ((filterAuthors) ? getString('filter.authors') + ': ' +  filterAuthors + "; ": '' ) }}
                     {{ (((filterYearRange[0] != yearRangeDefault[0]) || (filterYearRange[1] != yearRangeDefault[1]))) ? getString('filter.year-range') + ': ' + filterYearRange[0] + " - " + filterYearRange[1] + '; ' : '' }}
                     {{ ((filterJournal) ? getString('filter.journal') + ': ' +  filterJournal + "; ": '' ) }}
+                    {{ ((filterInZotero !== 'all') ? getString('filter.in-zotero.' + filterInZotero) : '') }}
                   </span>
-                  <span class="icon is-right is-clickable" @click="uiFilterId=''; filterTitleAbstract=''; filterAuthors=''; filterYearRange=[]; filterJournal=''"><i class="mdi mdi-close mdi-24px" style="color: #494949"></i></span>
+                  <span class="icon is-right is-clickable" @click="uiFilterId=''; filterTitleAbstract=''; filterAuthors=''; filterYearRange=[]; filterJournal=''; filterInZotero='all'"><i class="mdi mdi-close mdi-24px" style="color: #494949"></i></span>
                 </template>
                 <template v-else>
                   {{ getString('filter.no-filters-applied') }}
@@ -536,7 +531,7 @@
                       :triggers="['click']"
                       :auto-close="['outside', 'escape']">
                       <template v-slot:content>
-                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}">Google Scholar</a>
+                        <a @click="e => {e.preventDefault(); openUrl('https://scholar.google.com/scholar?q=' + authorString([author]))}" :title="getString('open-in-browser')">Google Scholar ↪</a>
                       </template>
                       <a>{{ authorString([author]) }}</a>
                     </b-tooltip>
@@ -554,18 +549,14 @@
                 <span :id="props.row.id" :class="{ retracted: props.row.isRetracted }">
                   {{ (seedArticlesIds.includes(props.row.id) ? (getString('table.column.title.seed-article') + ': ') : '') }}
                   <template v-if="props.row.id.substr(0,3) !== 'tmp'">
-                    <a @click="e => {e.preventDefault(); openItem(props.row.id)}" href="">
+                    <a @click="e => {e.preventDefault(); openItem(props.row.id)}">
                       {{ props.row.title }}
-                    </a>
-                  </template>
-                  <template v-else-if="props.row.url">
-                    <a @click="e => {e.preventDefault(); openUrl(props.row.url)}" href="">
-                      {{ props.row.title + ' \u21AA' }}
                     </a>
                   </template>
                   <template v-else>
                     {{ props.row.title }}
                   </template>
+                  <a @click="e => {e.preventDefault(); openUrl(props.row.url ?? 'https://doi.org/' + props.row.doi)}" :title="getString('open-in-browser')" v-if="props.row.url || props.row.doi">↪</a>
                 </span>
               </b-table-column>
               <b-table-column :label="getString('table.column.authors.label')" v-slot="props" :visible="showColumns.includes('author')"
@@ -684,7 +675,7 @@
               </b-field>
             </b-field>
             <p class="content">
-              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }} {{ getString('network-settings-modal.p1.3') }}
+              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}" :title="getString('open-in-browser')">vis.js network library ↪</a>. {{ getString('network-settings-modal.p1.2') }} {{ getString('network-settings-modal.p1.3') }}
               <a @click="currentGraph.customConfigCitationNetwork = undefined; resetCurrentNetwork(); initCurrentNetwork(); saveState();">
                 {{ getString('network-settings-modal.click-to-reset') }}
               </a>
@@ -717,7 +708,7 @@
               </b-field>
             </b-field>
             <p class="content">
-              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}">vis.js network library</a>. {{ getString('network-settings-modal.p1.2') }}
+              {{ getString('network-settings-modal.p1.1') }} <a @click="e => {e.preventDefault(); openUrl('https://visjs.github.io/vis-network/docs/network/')}" :title="getString('open-in-browser')">vis.js network library ↪</a>. {{ getString('network-settings-modal.p1.2') }}
               <a @click="currentGraph.customConfigAuthorNetwork = undefined; resetCurrentNetwork(); initCurrentNetwork(); saveState();">
                 {{ getString('network-settings-modal.click-to-reset') }}
               </a>

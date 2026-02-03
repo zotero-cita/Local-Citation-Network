@@ -1020,6 +1020,7 @@ const vm = new Vue({
     filterYearMin: undefined,
     filterYearMax: undefined,
     filterJournal: '',
+    filterInZotero: 'all',
     selectedArticle: undefined,
     articlesPerPage: 20,
     seedArticlesTabTablePage: 1,
@@ -1104,7 +1105,11 @@ const vm = new Vue({
       return this.filterArticles(this.seedArticles)
     },
     citedArticlesFiltered: function () {
-      return this.filterArticles(this.citedArticles)
+      let articles = this.citedArticles
+      // Zotero Cita inLibrary / notInLibrary filter only applies to citedArticles (not to seedArticles, because they are by definition always in library)
+      if (this.filterInZotero === 'inLibrary') articles = articles.filter(article => article.id.substr(0,3) !== 'tmp')
+      if (this.filterInZotero === 'notInLibrary') articles = articles.filter(article => article.id.substr(0,3) === 'tmp')
+      return this.filterArticles(articles)
     },
     citingArticlesFiltered: function () {
       return this.filterArticles(this.citingArticles)
@@ -1936,7 +1941,7 @@ const vm = new Vue({
             break
         }
       }
-      
+
       // User-defined filters
       const reTitleAbstract = new RegExp(this.filterTitleAbstract.trim(), 'i')
       const reAuthors = new RegExp(this.filterAuthors.trim(), 'i')
